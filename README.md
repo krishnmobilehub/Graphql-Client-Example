@@ -14,7 +14,16 @@ git clone https://github.com/krishnmobilehub/Graphql-Client-Example
 cd Graphql-Client-Example
 npm install
 ````
-### 2. Start your app
+
+## 2. Change URI with your current IP address 
+```
+link: new HttpLink({
+    uri: 'http://192.168.0.59:4000/graphql',
+  }),
+```
+
+
+### 3. Start your app
 
 ```
 npm start
