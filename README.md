@@ -10,10 +10,10 @@
 ### 1. Install dependencies
 
 ```
-git clone https://github.com/GetStream/react-native-example
-cd react-native-example
+git clone https://github.com/krishnmobilehub/Graphql-Client-Example
+cd Graphql-Client-Example
 npm install
-
+````
 ### 2. Start your app
 
 ```
