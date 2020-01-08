@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, ScrollView, ActivityIndicator, View, TextInput, Text } from 'react-native';
+import { StyleSheet, ScrollView, AsyncStorage, View, TextInput, Text } from 'react-native';
 import { Button } from 'react-native-elements';
 import gql from "graphql-tag";
 import { withApollo, Mutation } from 'react-apollo';
@@ -12,7 +12,7 @@ const CREATE_USER = gql`
 
 class VerifyPhoneNumberScreen extends Component {
   static navigationOptions = {
-    title: 'User Name',
+    header: null
   };
 
   state = {
@@ -42,33 +42,42 @@ class VerifyPhoneNumberScreen extends Component {
                       onChangeText={(text) => this.updateTextInput(text, 'verifyCode')}
                   />
                 </View>
-                { {verifyCodeError} && <Text>{verifyCodeError}</Text>}
-                <View>
+                { {verifyCodeError} && <Text style={styles.errorText}>{verifyCodeError}</Text>}
+                <View style={styles.container}>
                   <Button
                     large
                     leftIcon={{name: 'Next'}}
                     title='Save'
                     onPress={() => {
-                      if(verifyCode !== "") {
-                        createUser({
-                          variables: { username: "neel", password:"test123", phoneNumber:"98875434553", verificationCode:"5764"}
-                        })
-                        .then(res => {
-                          console.log("------res------",res)
-                          if (res.data.createUser === "Success") {
-                            navigation.navigate('UserScreen');
-                          } else {
-                            this.setState({
-                              verifyCodeError : "User already exist!"
-                            })
-                          }
-                        })
-                        .catch(err => <Text>{err}</Text>);
+                      AsyncStorage.getItem('USER_DATA', (err, result) => {
+                        const userData = JSON.parse(result)
+                        if(verifyCode !== ""  && verifyCode === userData.code) {
+                          createUser({
+                            variables: { 
+                              username: userData.username,
+                              password: userData.password,
+                              phoneNumber: userData.phoneNumber,
+                              verificationCode: userData.code
+                              }
+                          })
+                          .then(res => {
+                            if (res.data.createUser === "Success") {
+                              AsyncStorage.removeItem("USER_DATA",() => {
+                                AsyncStorage.setItem("USER_SESSION", JSON.stringify(userData) ,()=>{
+                                  navigation.navigate('UserScreen');
+                                })
+                              })
+                            } else {
+                              this.setState({verifyCodeError : "Something went wrong. Please try again!"})
+                            }
+                          })
+                          .catch(err => {
+                            this.setState({verifyCodeError : err.message})
+                          });
                       } else {
-                        this.setState({
-                          verifyCodeError : "Please enter valid code"
-                        })
+                        this.setState({verifyCodeError : "Please enter valid code"})
                       }
+                      });
                     }} />
                 </View>
               </ScrollView>
@@ -81,7 +90,8 @@ class VerifyPhoneNumberScreen extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20
+    padding: 20,
+    marginTop:80,
   },
   subContainer: {
     flex: 1,
@@ -90,14 +100,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: '#CCCCCC',
   },
-  activity: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center'
+  errorText: {
+    fontSize: 10,
+    color:'#FF0000'
   },
   textInput: {
     fontSize: 18,

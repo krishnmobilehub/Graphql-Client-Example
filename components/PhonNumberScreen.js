@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, ScrollView, ActivityIndicator, View, TextInput, Text } from 'react-native';
+import { StyleSheet, ScrollView, AsyncStorage,ActivityIndicator, View, TextInput, Text } from 'react-native';
 import { Button } from 'react-native-elements';
 import gql from "graphql-tag";
 import { withApollo } from 'react-apollo';
@@ -11,53 +11,54 @@ const PHONE_NUMBER_VERIFICATION = gql`
 `;
 
 class PhoneNumberScreen extends Component {
-  static navigationOptions = {
-    title: 'Phone Number',
-  };
 
   state = {
-    phoneNumber: '',
-    code:'',
-    phoneNumberError:''
+    phoneNumber: "",
+    code:"",
+    phoneNumberError:""
   }
 
   updateTextInput = (text, field) => {
     this.setState({ 
       [field] : text,
-      phoneNumberError: ''
+      phoneNumberError: "",
+      loading: false
     });
   }
 
   runQuery = () => {
     const { navigation, client} = this.props;
     const { phoneNumber } =  this.state;
-    console.log("-------phoneNumber-----",typeof phoneNumber)
     if(phoneNumber !== "") {
-      var code = Math.floor(Math.random() * 100) + 1 ;
-      console.log("-------code-----",code)
+      var code = (Math.floor(Math.random() * 10000) + 1).toString() ;
+      this.setState({loading : true})
       client.query({
         query: PHONE_NUMBER_VERIFICATION,
-        variables: { phoneNumber: "+919860500580", code: "2386"}
+        variables: { phoneNumber: phoneNumber.toString(), code: code}
       })
       .then(res => {
+        this.setState({loading : false})
         if (res.data.initiatePhoneNumberVerification) {
-          navigation.navigate('VerifyPhonNumberScreen');
+          AsyncStorage.getItem("USER_DATA", (err, result) =>{
+            AsyncStorage.mergeItem('USER_DATA', JSON.stringify({phoneNumber:phoneNumber,code:code}), () => {
+              navigation.navigate('VerifyPhonNumberScreen');
+            });
+          });
         } else {
-          this.setState({
-            userNameError : "Something went wrong! Please try again."
-          })
+          this.setState({userNameError : "Something went wrong! Please try again."})
         }
       })
-      .catch(err => console.log("-------err-----",err));
+      .catch(err => {
+        this.setState({loading : false})
+        this.setState({userNameError : err.message})
+      });
     } else {
-      this.setState({
-        phoneNumberError : "Field can't be blank"
-      })
+      this.setState({phoneNumberError : "Field can't be blank"})
     }
   }
   
   render() {
-    const { phoneNumber, phoneNumberError } =  this.state;
+    const { phoneNumber, phoneNumberError,loading } =  this.state;
     return (
             <ScrollView style={styles.container}>
               <View style={styles.subContainer}>
@@ -69,14 +70,17 @@ class PhoneNumberScreen extends Component {
                     onChangeText={(text) => this.updateTextInput(text, 'phoneNumber')}
                 />
               </View>
-              { {phoneNumberError} && <Text>{phoneNumberError}</Text>}
-              <View>
+              { {phoneNumberError} && <Text style={styles.errorText}>{phoneNumberError}</Text>}
+              <View style={styles.container}>
                 <Button
                   large
                   leftIcon={{name: 'Next'}}
                   title='Next'
                   onPress={() => this.runQuery()} />
               </View>
+              {loading && <View style={styles.activity}>
+                  <ActivityIndicator size="large" color="#0000ff" />
+                </View>}
             </ScrollView>
     );
   }
@@ -85,7 +89,8 @@ class PhoneNumberScreen extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20
+    padding: 20,
+    marginTop:80,
   },
   subContainer: {
     flex: 1,
@@ -93,6 +98,14 @@ const styles = StyleSheet.create({
     padding: 5,
     borderBottomWidth: 2,
     borderBottomColor: '#CCCCCC',
+  },
+  errorText: {
+    fontSize: 10,
+    color:'#FF0000'
+  },
+  textInput: {
+    fontSize: 18,
+    margin: 5,
   },
   activity: {
     position: 'absolute',
@@ -102,10 +115,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  textInput: {
-    fontSize: 18,
-    margin: 5,
   },
 })
 

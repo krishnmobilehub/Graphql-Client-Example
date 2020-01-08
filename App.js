@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppRegistry } from 'react-native';
-import { createStackNavigator, createAppContainer } from 'react-navigation';
+import { createStackNavigator, createAppContainer,createSwitchNavigator } from 'react-navigation';
 import UserScreen from './components/UserScreen';
 import PasswordScreen from './components/PasswordScreen';
 import UserNameScreen from './components/UserNameScreen';
@@ -12,12 +12,22 @@ import { HttpLink } from 'apollo-link-http';
 import { ApolloProvider } from 'react-apollo';
 
 const MainNavigator = createStackNavigator({
-  UserScreen: { screen: UserScreen },
   UserNameScreen: { screen: UserNameScreen },
   PasswordScreen: { screen: PasswordScreen },
   PhonNumberScreen: { screen: PhonNumberScreen },
   VerifyPhonNumberScreen: { screen: VerifyPhonNumberScreen },
-});
+},{
+    headerMode: 'none',
+  },);
+
+const AuthNavigation = createSwitchNavigator({
+  UserScreen: { screen: UserScreen },
+  MainNavigator: { screen: MainNavigator },
+  },
+  {
+    initialRouteName: 'UserScreen',
+  },
+);
 
 const cache = new InMemoryCache();
 const client = new ApolloClient({
@@ -27,7 +37,9 @@ const client = new ApolloClient({
   }),
 });
 
-const MyRootComponent = createAppContainer(MainNavigator);
+console.disableYellowBox = true;
+
+const MyRootComponent = createAppContainer(AuthNavigation);
 
 const App = () => (
   <ApolloProvider client={client}>

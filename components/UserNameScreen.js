@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, ScrollView, ActivityIndicator, View, TextInput, Text } from 'react-native';
+import { StyleSheet, ScrollView, AsyncStorage, View, TextInput, Text } from 'react-native';
 import { Button } from 'react-native-elements';
 import gql from "graphql-tag";
 import { withApollo } from 'react-apollo';
@@ -10,12 +10,22 @@ const CHECK_USER_NAME = gql`
     }
 `;
 
-class UserNameScreen extends Component {
-  static navigationOptions = {
-    title: 'User Name',
-  };
+let userData = {
+  username: '',
+  password: '',
+  phoneNumber: '',
+  code: ''
+}
 
+class UserNameScreen extends Component {
+ 
   state = {
+    user: {
+      username: '',
+      password: '',
+      phoneNumber: '',
+      code: ''
+    },
     userName: '',
     userNameError: ''
   }
@@ -27,28 +37,29 @@ class UserNameScreen extends Component {
     });
   }
 
-  runQuery = () => {
+  onNextButtonClick = () => {
     const { navigation, client } = this.props;
-    const { userName } =  this.state;
+    const { userName, user } =  this.state;
     if(userName !== "") {
       client.query({
         query: CHECK_USER_NAME,
-        variables: { username: this.state.userName }
+        variables: { username: userName.toString() }
       })
       .then(res => {
         if (!res.data.isUsernameAvailable) {
-          navigation.navigate('PasswordScreen');
+          userData.username = userName
+          AsyncStorage.setItem("USER_DATA", JSON.stringify(userData),()=>{
+            navigation.navigate('PasswordScreen');
+          });
         } else {
-          this.setState({
-            userNameError : "User already exist!"
-          })
+          this.setState({userNameError : "User already exist!"})
         }
       })
-      .catch(err => console.log("------err------",err));
+      .catch(err => {
+        this.setState({userNameError : err.message})
+      });
     } else {
-      this.setState({
-        userNameError : "Field can't be blank"
-      })
+      this.setState({userNameError : "Field can't be blank"})
     }
   }
   
@@ -64,13 +75,12 @@ class UserNameScreen extends Component {
                     onChangeText={(text,event) => this.updateTextInput(text, 'userName')}
                 />
               </View>
-              { {userNameError} && <Text>{userNameError}</Text>}
-              <View>
+              { {userNameError} && <Text style={styles.errorText}>{userNameError}</Text>}
+              <View style={styles.container}>
                 <Button
                   large
-                  leftIcon={{name: 'Next'}}
                   title='Next'
-                  onPress={() => this.runQuery()} />
+                  onPress={()=>this.onNextButtonClick()} />
               </View>
             </ScrollView>
     );
@@ -80,23 +90,20 @@ class UserNameScreen extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20
+    width: '100%',
+    padding: 20,
+    marginTop:80,
   },
   subContainer: {
     flex: 1,
-    marginBottom: 20,
+    marginBottom: 10,
     padding: 5,
     borderBottomWidth: 2,
     borderBottomColor: '#CCCCCC',
   },
-  activity: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center'
+  errorText: {
+    fontSize: 10,
+    color:'#FF0000'
   },
   textInput: {
     fontSize: 18,

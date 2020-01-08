@@ -1,13 +1,10 @@
 import React, { Component } from 'react';
-import { StyleSheet, ScrollView, ActivityIndicator, View, TextInput, Text } from 'react-native';
+import { StyleSheet, ScrollView, AsyncStorage, View, TextInput, Text } from 'react-native';
 import { Button } from 'react-native-elements';
 import { withApollo } from 'react-apollo';
 
 class PasswordScreen extends Component {
-  static navigationOptions = {
-    title: 'Password',
-  };
-
+ 
   state = {
     password: '',
     passwordError: '',
@@ -29,7 +26,11 @@ class PasswordScreen extends Component {
     const isPasswordValid =  this.isValidPassword(password);
     const isConfirmPasswordValid =  this.isValidConfirmPassword(password, confirmPassword);
     if (isPasswordValid && isConfirmPasswordValid) {
-      navigation.navigate('PhonNumberScreen');
+      AsyncStorage.getItem("USER_DATA", (err, result) =>{
+        AsyncStorage.mergeItem('USER_DATA', JSON.stringify({password:password}), () => {
+          navigation.navigate('PhonNumberScreen');
+        });
+      });
     }
   }
 
@@ -53,7 +54,7 @@ class PasswordScreen extends Component {
 
   isValidConfirmPassword = (password, confirmPassword) => {
     let error = '';
-    if(confirmPassword === "" && password !== confirmPassword) {
+    if(confirmPassword === "" || password !== confirmPassword) {
         error = "Password doesn't match";
     } 
     
@@ -77,7 +78,7 @@ class PasswordScreen extends Component {
                     onChangeText={(text) => this.updateTextInput(text, 'password')}
                 />
               </View>
-              { {passwordError} && <Text>{passwordError}</Text>}
+              { {passwordError} && <Text style={styles.errorText}>{passwordError}</Text>}
               <View style={styles.subContainer}>
                 <TextInput
                     style={styles.textInput}
@@ -87,11 +88,10 @@ class PasswordScreen extends Component {
                     onChangeText={(text) => this.updateTextInput(text, 'confirmPassword')}
                 />
               </View>
-              { {confirmPasswordError} && <Text>{confirmPasswordError}</Text>}
-              <View>
+              { {confirmPasswordError} && <Text style={styles.errorText}>{confirmPasswordError}</Text>}
+              <View style={styles.container}>
                 <Button
                   large
-                  leftIcon={{name: 'Next'}}
                   title='Next'
                   onPress={() => this.runQuery()} />
               </View>
@@ -103,23 +103,19 @@ class PasswordScreen extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20
+    padding: 20,
+    marginTop:80,
   },
   subContainer: {
     flex: 1,
-    marginBottom: 20,
+    marginBottom: 10,
     padding: 5,
     borderBottomWidth: 2,
     borderBottomColor: '#CCCCCC',
   },
-  activity: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center'
+  errorText: {
+    fontSize: 10,
+    color:'#FF0000'
   },
   textInput: {
     fontSize: 18,

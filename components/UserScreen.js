@@ -1,13 +1,16 @@
 import React, { Component } from 'react';
-import { StyleSheet, ActivityIndicator, View, Text } from 'react-native';
-import { Button } from 'react-native-elements';
-import gql from 'graphql-tag';
+import { StyleSheet, AsyncStorage, View, Text, Button } from 'react-native';
 import { withApollo } from 'react-apollo';
 
 class UserScreen extends Component {
 
+    static navigationOptions = ({ navigation }) => {
+        return {
+            title: 'User'
+        };
+    };
+
     state = {
-        userId: "7",
         user: {
             username: '',
             phoneNumber: ''
@@ -15,68 +18,56 @@ class UserScreen extends Component {
     }
 
     componentDidMount() {
-        const { client } = this.props;
-        const { userId } =  this.state;
-        client.query({
-            query: gql`
-            query {
-                user(id: ${userId}) {
-                    username,
-                    phoneNumber
-                }
-            }`
-          })
-          .then(res => {
-            this.setState({
-                user:{
-                    username : res.data.user.username,
-                    phoneNumber: res.data.user.phoneNumber
-                }
-            })
-          })
-          .catch(err => console.log("------err------",err));
+        const {navigation} = this.props;
+        AsyncStorage.getItem("USER_SESSION", (err, result) =>{
+            if (result) {
+                const userData = JSON.parse(result)
+                this.setState({
+                    user:{
+                        username: userData.username,
+                        phoneNumber: userData.phoneNumber
+                    }
+                })
+            } else {
+                navigation.navigate('UserNameScreen')
+            }
+        })
     }
 
-    static navigationOptions = ({ navigation }) => {
-        return {
-            title: 'User',
-            headerRight: (
-            <Button
-                buttonStyle={{ padding: 0, backgroundColor: 'transparent' }}
-                icon={{ name: 'add-circle', style: { marginRight: 0, fontSize: 28 } }}
-                onPress={() => { navigation.push('UserNameScreen') }}
-            />
-            ),
-        };
-    };
+    onNextButtonClick = () => {
+        const {navigation} = this.props;
+        AsyncStorage.removeItem("USER_SESSION",() => {
+            navigation.navigate('UserNameScreen')
+        })
+    }
 
     render() {
         const {user} = this.state;
         return (
-                <View style={styles.activity}>
-                    <Text>{user.username}</Text>
-                    <Text>{user.phoneNumber}</Text>
+                <View style={styles.container}>
+                    <Text style={styles.textField}>{user.username}</Text>
+                    <Text style={styles.textField}>{user.phoneNumber}</Text>
+                    <View style={styles.container}>
+                        <Button
+                        large
+                        title='Logout'
+                        onPress={()=>this.onNextButtonClick()} />
+                    </View>
                 </View>
         );
     }
 }
 
 const styles = StyleSheet.create({
+    textField: {
+        fontSize: 18,
+        color:'#FF0000'
+    },
     container: {
         flex: 1,
-        paddingBottom: 22
-    },
-    item: {
-        padding: 10,
-        fontSize: 18,
-        height: 44,
-    },
-    activity: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
+        width: '100%',
+        padding: 20,
+        marginTop:80,
         alignItems: 'center',
         justifyContent: 'center'
     }
